@@ -7,16 +7,13 @@ on:
   pull_request:
     branches:
       - main
-  workflow_dispatch:
+  workflow_dispatch:  # Allows manual triggering
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
       - name: Install dependencies
         run: |
           sudo apt update -y && sudo apt upgrade -y
@@ -87,7 +84,7 @@ jobs:
 
       - name: Upload built kernel artifacts
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4  # Updated to use v4
         with:
           name: kernel
           path: out/arch/arm64/boot/Image*
