@@ -12,8 +12,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+    
       - name: Install dependencies
         run: |
           sudo apt update -y && sudo apt upgrade -y
@@ -24,12 +26,9 @@ jobs:
                            libncurses5-dev zlib1g zlib1g-dev libreadline-dev libbz2-dev \
                            libsqlite3-dev pigz python2 python3 -y
 
-      - name: Clone kernel repository
-        run: git clone https://github.com/xiaomi-mt6781-dev/kernel_xiaomi_fleur.git kernel_repo
-
       - name: Create build script
         run: |
-          cat << 'EOF' > kernel_repo/b.sh
+          cat << 'EOF' > b.sh
           #!/bin/bash
           # Copyright cc 2023 sirnewbies
         
@@ -76,10 +75,9 @@ jobs:
           clean
           build_kernel
           EOF
-          chmod +x kernel_repo/b.sh
+          chmod +x b.sh
 
       - name: Execute the build script
-        working-directory: kernel_repo
         run: bash b.sh
 
       - name: Upload built kernel artifacts
