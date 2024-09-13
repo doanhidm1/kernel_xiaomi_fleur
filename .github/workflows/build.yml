@@ -1,0 +1,92 @@
+name: Kernel Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          sudo apt update -y && sudo apt upgrade -y
+          sudo apt install nano bc bison ca-certificates curl flex gcc git libc6-dev libssl-dev \
+                           openssl python-is-python3 ssh wget zip zstd sudo make clang \
+                           gcc-arm-linux-gnueabi software-properties-common build-essential \
+                           libarchive-tools gcc-aarch64-linux-gnu libssl-dev libffi-dev \
+                           libncurses5-dev zlib1g zlib1g-dev libreadline-dev libbz2-dev \
+                           libsqlite3-dev pigz python2 python3 -y
+
+      - name: Clone kernel repository
+        run: git clone https://github.com/xiaomi-mt6781-dev/kernel_xiaomi_fleur.git kernel_repo
+
+      - name: Create build script
+        run: |
+          cat << 'EOF' > kernel_repo/b.sh
+          #!/bin/bash
+          # Copyright cc 2023 sirnewbies
+
+          # setup color
+          red='\033[0;31m'
+          green='\e[0;32m'
+          white='\033[0m'
+          yellow='\033[0;33m'
+
+          WORK_DIR=\$(pwd)
+          KERN_IMG="\${WORK_DIR}/out/arch/arm64/boot/Image-gz.dtb"
+          KERN_IMG2="\${WORK_DIR}/out/arch/arm64/boot/Image.gz"
+
+          function clean() {
+              echo -e "\n"
+              echo -e "\$red << cleaning up >> \n\$white"
+              echo -e "\n"
+              rm -rf out
+          }
+
+          function build_kernel() {
+              echo -e "\n"
+              echo -e "\$yellow << building kernel >> \n\$white"
+              echo -e "\n"
+
+              make -j\$(nproc --all) O=out ARCH=arm64 mt6781_defconfig
+              make -j\$(nproc --all) ARCH=arm64 O=out \
+                                    CROSS_COMPILE=aarch64-linux-gnu- \
+                                    CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+                                    CROSS_COMPILE_COMPAT=arm-linux-gnueabi-
+                                    
+              if [ -e "\$KERN_IMG" ] || [ -e "\$KERN_IMG2" ]; then
+                  echo -e "\n"
+                  echo -e "\$green << compile kernel success! >> \n\$white"
+                  echo -e "\n"
+              else
+                  echo -e "\n"
+                  echo -e "\$red << compile kernel failed! >> \n\$white"
+                  echo -e "\n"
+              fi
+          }
+
+          # execute
+          clean
+          build_kernel
+          EOF
+          chmod +x kernel_repo/b.sh
+
+      - name: Execute the build script
+        working-directory: kernel_repo
+        run: bash b.sh
+
+      - name: Upload built kernel artifacts
+        if: success()
+        uses: actions/upload-artifact@v2
+        with:
+          name: kernel
+          path: out/arch/arm64/boot/Image*
