@@ -1,13 +1,7 @@
 name: Kernel Build
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-  workflow_dispatch:  # Allows manual triggering
+  workflow_dispatch:
 
 jobs:
   build:
@@ -78,7 +72,7 @@ jobs:
           chmod +x b.sh
 
       - name: Execute the build script
-        run: bash b.sh
+        run: sudo bash b.sh
 
       - name: Upload built kernel artifacts
         if: success()
